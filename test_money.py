@@ -1,10 +1,18 @@
 import pytest
 
+from bank import Bank
 from money import Money
 from portfolio import Portfolio
 
 
 class TestMoney:
+
+    @classmethod
+    def setup_class(cls):
+        cls.bank = Bank()
+        cls.bank.add_exchange_rate("EUR", "USD", 1.2)
+        cls.bank.add_exchange_rate("USD", "KRW", 1100)
+
     def test_multiplication(self):
         two_euros = Money(2, "EUR")
         assert Money(6, "EUR") == two_euros.times(3)
@@ -19,7 +27,7 @@ class TestMoney:
         portfolio = Portfolio()
         portfolio.add(five_dollars)
         portfolio.add(ten_dollars)
-        assert portfolio.value(currency="USD") == Money(15, "USD")
+        assert portfolio.value(currency="USD", bank=self.bank) == Money(15, "USD")
 
     def test_addition_of_dollars_and_euros(self):
         five_dollars = Money(5, "USD")
@@ -28,7 +36,7 @@ class TestMoney:
         portfolio.add(five_dollars)
         portfolio.add(ten_euros)
         expected_value = Money(17, "USD")
-        actual_value = portfolio.value(currency="USD")
+        actual_value = portfolio.value(currency="USD", bank=self.bank)
         assert expected_value == actual_value, "%s != %s" % (expected_value, actual_value)
 
     def test_addition_of_dollars_and_kwons(self):
@@ -38,7 +46,7 @@ class TestMoney:
         portfolio.add(one_dolar)
         portfolio.add(eleven_hundred_won)
         expected_value = Money(2200, "KRW")
-        actual_value = portfolio.value(currency="KRW")
+        actual_value = portfolio.value(currency="KRW", bank=self.bank)
         assert expected_value == actual_value, "%s != %s" % (expected_value, actual_value)
 
     def test_addition_with_multiple_missing_exchanges(self):
@@ -51,4 +59,19 @@ class TestMoney:
         portfolio.add(one_won)
         with pytest.raises(Exception,
                            match=r"Missing exchange rate\(s\):\[USD\->Kalganid,EUR\->Kalganid,KRW\->Kalganid\]"):
-            portfolio.value("Kalganid")
+            portfolio.value("Kalganid", self.bank)
+
+    def test_conversion(self):
+        ten_euros = Money(10, "EUR")
+        assert self.bank.convert(ten_euros, "USD") == Money(12, "USD")
+
+    def test_conversion_with_unknown_currency(self):
+        ten_euros = Money(10, "EUR")
+        with pytest.raises(Exception, match="EUR->Kalganid"):
+            self.bank.convert(ten_euros, "Kalganid")
+
+    def test_conversion_with_different_rates_between_same_currencies(self):
+        ten_euros = Money(10, "EUR")
+        assert self.bank.convert(ten_euros, "USD") == Money(12, "USD")
+        self.bank.add_exchange_rate("EUR", "USD", 1.3)
+        assert self.bank.convert(ten_euros, "USD") == Money(13, "USD")
