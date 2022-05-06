@@ -39,11 +39,11 @@ class TestMoney:
         actual_value = portfolio.value(currency="USD", bank=self.bank)
         assert expected_value == actual_value, "%s != %s" % (expected_value, actual_value)
 
-    def test_addition_of_dollars_and_kwons(self):
-        one_dolar = Money(1, "USD")
+    def test_addition_of_dollars_and_wons(self):
+        one_dollar = Money(1, "USD")
         eleven_hundred_won = Money(1100, "KRW")
         portfolio = Portfolio()
-        portfolio.add(one_dolar)
+        portfolio.add(one_dollar)
         portfolio.add(eleven_hundred_won)
         expected_value = Money(2200, "KRW")
         actual_value = portfolio.value(currency="KRW", bank=self.bank)
